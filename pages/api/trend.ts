@@ -119,7 +119,7 @@ export default async (_req: NextApiRequest, res: NextApiResponse) => {
           .filter((_, i) => i > candles.length - 3);
 
         // remove last element
-        // lastCandles.pop();
+        lastCandles.pop();
 
         if (
           lastCandles.some(
@@ -127,8 +127,8 @@ export default async (_req: NextApiRequest, res: NextApiResponse) => {
               l.atrChange > 0 &&
               // l.close < l.lowerBand
               // l.change > -0.5 &&
-              l.priceChange > 0 &&
-              l.volumeChange > 0
+              l.priceChange > 1 &&
+              l.volumeChange > 1
           )
         ) {
           console.log(`Check this pair ${pair.id}`);
