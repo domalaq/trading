@@ -1,23 +1,15 @@
 import { AxiosResponse } from "axios";
-import { bollingerBands, atr } from "indicatorts";
-import { NextApiRequest, NextApiResponse } from "next";
 import {
-  getCandleSticks,
-  getSupportedCurrencyPairs,
-  getTickers,
-} from "../../src/gate";
-import { Kline } from "../../src/types";
-
-interface Pair {
-  quote: string;
-  trade_status: "tradable" | "untradable";
-  id: string;
-}
-
-interface Ticker {
-  quote_volume: string;
-  currency_pair: string;
-}
+  bollingerBands,
+  atr,
+  volumeWeightedAveragePrice,
+  rsi,
+  ema,
+} from "indicatorts";
+import { NextApiRequest, NextApiResponse } from "next";
+import { getCandleSticks, getCurrencyPairs, getTickers } from "../../src/gate";
+import { Kline, Pair, Ticker } from "../../src/types";
+// import { getPredictions } from "../../src/reg";
 
 export default async (_req: NextApiRequest, res: NextApiResponse) => {
   let pairRes: AxiosResponse<Pair[]>;
@@ -25,10 +17,10 @@ export default async (_req: NextApiRequest, res: NextApiResponse) => {
   console.log("Getting currency pairs");
 
   try {
-    pairRes = await getSupportedCurrencyPairs();
+    pairRes = await getCurrencyPairs();
   } catch (error) {
     console.log(error);
-    return res.status(500);
+    return res.status(500).send("error");
   }
 
   const usdtPairs: Pair[] = pairRes.data.filter(
@@ -50,16 +42,20 @@ export default async (_req: NextApiRequest, res: NextApiResponse) => {
         volume24h: ticker.quote_volume,
         high: ticker.high_24h,
         low: ticker.low_24h,
+        last: ticker.last,
       };
     })
-    .filter((p) => p.volume24h > 400000);
+    .filter((p) => p.volume24h > 2000000);
 
   console.log("Analyzing market");
 
   const trendingPairs = await Promise.all(
     pairs.map(async (pair) => {
       try {
-        const res: AxiosResponse<string[][]> = await getCandleSticks(pair.id);
+        const res: AxiosResponse<string[][]> = await getCandleSticks(
+          pair.id,
+          "5m"
+        );
 
         const candles: Kline[] = res.data.map((d) => ({
           close: Number(d[2]),
@@ -81,6 +77,12 @@ export default async (_req: NextApiRequest, res: NextApiResponse) => {
           priceChange: 0,
           widthChange: 0,
           volumeChange: 0,
+          precision: pair.precision,
+          amountPrecision: pair.amount_precision,
+          vwap: 0,
+          rsi: 0,
+          emaFlip: false,
+          vwapFlip: false,
         }));
 
         const bbs = bollingerBands(candles.map((c) => c.close));
@@ -92,6 +94,22 @@ export default async (_req: NextApiRequest, res: NextApiResponse) => {
           candles.map((c) => c.close)
         );
 
+        const vwaps = volumeWeightedAveragePrice(
+          1000,
+          candles.map((c) => c.close),
+          candles.map((c) => c.quoteVolume)
+        );
+
+        const rsis = rsi(candles.map((c) => c.close));
+
+        const emas = ema(
+          9,
+          candles.map((c) => c.close)
+        );
+
+        const avgVolume =
+          candles.reduce((sum, c) => sum + c.baseVolume, 0) / candles.length;
+
         const lastCandles: Kline[] = candles
           .map((c, i) => ({
             ...c,
@@ -100,6 +118,17 @@ export default async (_req: NextApiRequest, res: NextApiResponse) => {
             lowerBand: bbs.lowerBand[i],
             change: 100 - (c.close / bbs.lowerBand[i]) * 100,
             atr: atrs.atrLine[i],
+            vwap: vwaps[i],
+            rsi: rsis[i],
+            ema: emas[i],
+            emaFlip:
+              i === 0
+                ? false
+                : emas[i] < c.close && emas[i - 1] > candles[i - 1].close,
+            vwapFlip:
+              i === 0
+                ? false
+                : vwaps[i] < c.close && vwaps[i - 1] > candles[i - 1].close,
             atrChange:
               i === 0 ? 0 : (atrs.atrLine[i] / atrs.atrLine[i - 1] - 1) * 100,
             priceChange:
@@ -111,10 +140,7 @@ export default async (_req: NextApiRequest, res: NextApiResponse) => {
                     (bbs.upperBand[i - 1] - bbs.lowerBand[i - 1]) -
                     1) *
                   100,
-            volumeChange:
-              i === 0
-                ? 0
-                : (c.quoteVolume / candles[i - 1].quoteVolume - 1) * 100,
+            volumeChange: (c.baseVolume / avgVolume - 1) * 100,
           }))
           .filter((_, i) => i > candles.length - 3);
 
@@ -124,24 +150,34 @@ export default async (_req: NextApiRequest, res: NextApiResponse) => {
         if (
           lastCandles.every(
             (l) =>
-              l.atrChange > 0 &&
-              l.close > l.upperBand &&
-              // l.change > -0.5 &&
-              l.priceChange > 0 &&
-              l.volumeChange > 0
+              // l.atrChange > 0 &&
+              // l.priceChange > 0 &&
+              l.volumeChange > 100 &&
+              // l.close > l.upperBand &&
+              // l.emaFlip &&
+              // l.vwapFlip &&
+              // l.priceChange < 0 &&
+              // l.close < l.lowerBand &&
+              // ((l.close - l.vwap) / l.close) * 100 < 2 &&
+              // ((l.close - l.vwap) / l.close) * 100 >= 0 &&
+              // (l.high24h - l.close) / l.close > 0.1 &&
+              // l.rsi < 35 &&
+              //
+              true
           )
         ) {
-          console.log(`Check this pair ${pair.id}`);
-          console.log(
-            JSON.stringify(
-              lastCandles.map((l) => ({
-                close: l.close,
-                change: l.change,
-                volume24h: l.volume24h,
-                atrChange: l.atrChange,
-              }))
-            ) + "\n"
-          );
+          console.log(`Check this pair ${pair.id}, ${avgVolume}`);
+
+          // const predictions: number[] = await getPredictions(
+          //   pair.id,
+          //   Number(pair.high),
+          //   Number(pair.low)
+          // );
+
+          // const change = ((predictions[0] - pair.last) / pair.last) * 100;
+
+          // console.log(predictions, change.toFixed(2) + "%");
+          console.log(JSON.stringify(lastCandles) + "\n");
 
           return Promise.resolve(lastCandles);
         }

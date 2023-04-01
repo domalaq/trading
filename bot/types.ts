@@ -18,4 +18,27 @@ export interface Kline {
   priceChange: number;
   widthChange: number;
   volumeChange: number;
+  vwap: number;
+  rsi: number;
+  emaFlip: boolean;
+  vwapFlip: boolean;
+}
+
+export interface Pair {
+  quote: string;
+  trade_status: "tradable" | "untradable";
+  id: string;
+  precision: number;
+  amount_precision: number;
+}
+
+export interface Ticker {
+  quote_volume: string;
+  currency_pair: string;
+}
+
+export interface Trade {
+  side: string;
+  price: string;
+  precision: number;
 }

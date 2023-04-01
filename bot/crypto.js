@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getSign = exports.getSignatureString = exports.getPayloadHash = void 0;
+const crypto_js_1 = require("crypto-js");
+const getPayloadHash = (payload) => (0, crypto_js_1.SHA512)(payload).toString();
+exports.getPayloadHash = getPayloadHash;
+const getSignatureString = (method, url, params, payloadHash, timestamp) => `${method}\n/api/v4${url}\n${params}\n${payloadHash}\n${timestamp}`;
+exports.getSignatureString = getSignatureString;
+const getSign = (signatureString) => (0, crypto_js_1.HmacSHA512)(signatureString, "66d5f4df96186caa6728412e6aa75eb464caadc344c1d02404693cc44dcb1038").toString();
+exports.getSign = getSign;

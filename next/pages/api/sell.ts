@@ -1,11 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { createOrder } from "../../src/gate";
+import { sellOrder } from "../../src/gate";
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { currencyPair, amount } = req.body;
 
-    const orderRes = await createOrder(currencyPair, amount);
+    const orderRes = await sellOrder(currencyPair, amount, "");
 
     console.log(orderRes);
 
