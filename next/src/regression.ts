@@ -2,7 +2,7 @@
 import { RandomForestRegression as RFRegression } from "ml-random-forest";
 import { AxiosResponse } from "axios";
 import { Kline, Pair, Ticker } from "./types";
-import { getCandleSticks, getSupportedCurrencyPairs, getTickers } from "./gate";
+import { getCandleSticks, getCurrencyPairs, getTickers } from "./gate";
 import { atr, bollingerBands } from "indicatorts";
 
 const main = async () => {
@@ -11,7 +11,7 @@ const main = async () => {
   console.log("Getting currency pairs");
 
   try {
-    pairRes = await getSupportedCurrencyPairs();
+    pairRes = await getCurrencyPairs();
   } catch (error) {
     return console.log(error);
   }
@@ -73,6 +73,8 @@ const main = async () => {
           amountPrecision: pair.amount_precision,
           vwap: 0,
           rsi: 0,
+          emaFlip: false,
+          vwapFlip: false,
         }));
 
         const bbs = bollingerBands(candles.map((c) => c.close));
