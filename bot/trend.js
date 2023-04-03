@@ -72,11 +72,9 @@ const job = new cron_1.CronJob({
                 }));
                 const avgVolume = candles.reduce((sum, c) => sum + c.baseVolume, 0) / candles.length;
                 const lastCandles = candles
-                    .map((c, i) => (Object.assign(Object.assign({}, c), { priceChange: i === 0
-                        ? 0
-                        : Math.abs((c.close / candles[i - 1].close - 1) * 100), volumeChange: (c.baseVolume / avgVolume - 1) * 100 })))
+                    .map((c, i) => (Object.assign(Object.assign({}, c), { priceChange: i === 0 ? 0 : (c.close / candles[i - 1].close - 1) * 100, volumeChange: (c.baseVolume / avgVolume - 1) * 100 })))
                     .filter((_, i) => i > candles.length - 3);
-                if (lastCandles.some((l) => l.volumeChange > 100 && l.priceChange > 0.5)) {
+                if (lastCandles.some((l) => l.volumeChange > 100 && Math.abs(l.priceChange) > 0.5)) {
                     return Promise.resolve({
                         symbol: lastCandles[0].symbol,
                         volumeChange: Math.max(...lastCandles.map((l) => l.volumeChange)),
