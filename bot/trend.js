@@ -78,7 +78,7 @@ const job = new cron_1.CronJob({
                     return Promise.resolve({
                         symbol: lastCandles[0].symbol,
                         volumeChange: Math.max(...lastCandles.map((l) => l.volumeChange)),
-                        priceChange: Math.max(...lastCandles.map((l) => l.priceChange)),
+                        priceChange: Math.max(...lastCandles.map((l) => Math.abs(l.priceChange))),
                     });
                 }
                 return Promise.resolve({
