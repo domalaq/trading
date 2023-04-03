@@ -1,6 +1,13 @@
 import Container from "@mui/material/Container";
 import Box from "@mui/material/Box";
-import { Button, Divider, TextField } from "@mui/material";
+import {
+  Alert,
+  AlertColor,
+  Button,
+  Divider,
+  Snackbar,
+  TextField,
+} from "@mui/material";
 import { useEffect, useState } from "react";
 import CoinsTable from "../src/CoinsTable";
 import { Kline, Trade } from "../src/types";
@@ -14,12 +21,15 @@ export default function Home() {
   const [loadingStopLoss, setLoadingStopLoss] = useState(false);
   const [loadingTakeProfit, setLoadingTakeProfit] = useState(false);
   const [coins, setCoins] = useState([] as Kline[]);
-  const [currencyPair, setCurrencyPair] = useState("BTC_USDT");
-  const [amount, setAmount] = useState("40");
+  const [currencyPair, setCurrencyPair] = useState("?_USDT");
+  const [amount, setAmount] = useState("60");
   const [buyPrice, setBuyPrice] = useState(new BigNumber(0));
   const [sellPrice, setSellPrice] = useState(new BigNumber(0));
   const [percent, setPercent] = useState(new BigNumber(0));
   const [precision, setPrecision] = useState(0);
+  const [message, setMessage] = useState("");
+  const [isMessage, setIsMessage] = useState(false);
+  const [severity, setSeverity] = useState("success");
 
   const getTrendingCoins = async () => {
     setLoading(true);
@@ -70,9 +80,13 @@ export default function Home() {
         amount,
       });
 
-      console.log(res);
-    } catch (error) {
-      console.log(error);
+      setMessage(JSON.stringify(res.data));
+      setSeverity("success");
+      setIsMessage(true);
+    } catch (error: any) {
+      setMessage(JSON.stringify(error.response.data));
+      setSeverity("error");
+      setIsMessage(true);
     }
 
     setLoadingCreate(false);
@@ -87,9 +101,13 @@ export default function Home() {
         sellPrice,
       });
 
-      console.log(res);
-    } catch (error) {
-      console.log(error);
+      setMessage(JSON.stringify(res.data));
+      setSeverity("success");
+      setIsMessage(true);
+    } catch (error: any) {
+      setMessage(JSON.stringify(error.response.data));
+      setSeverity("error");
+      setIsMessage(true);
     }
 
     setLoadingStopLoss(false);
@@ -104,9 +122,13 @@ export default function Home() {
         sellPrice,
       });
 
-      console.log(res);
-    } catch (error) {
-      console.log(error);
+      setMessage(JSON.stringify(res.data));
+      setSeverity("success");
+      setIsMessage(true);
+    } catch (error: any) {
+      setMessage(JSON.stringify(error.response.data));
+      setSeverity("error");
+      setIsMessage(true);
     }
 
     setLoadingTakeProfit(false);
@@ -118,6 +140,20 @@ export default function Home() {
 
   return (
     <Container maxWidth={false}>
+      <Snackbar
+        open={isMessage}
+        autoHideDuration={6000}
+        onClose={() => setIsMessage(false)}
+      >
+        <Alert
+          onClose={() => setIsMessage(false)}
+          severity={severity as AlertColor}
+          sx={{ width: "100%" }}
+        >
+          {message}
+        </Alert>
+      </Snackbar>
+
       <Box
         sx={{
           display: "flex",
@@ -195,11 +231,15 @@ export default function Home() {
           <Button
             variant="contained"
             onClick={() => setStopLoss()}
-            disabled={loadingTrade}
+            disabled={loadingStopLoss}
           >
             {loadingStopLoss ? "loading" : `stop loss`}
           </Button>
-          <Button variant="contained" onClick={() => setTakeProfit()}>
+          <Button
+            variant="contained"
+            onClick={() => setTakeProfit()}
+            disabled={loadingTakeProfit}
+          >
             {loadingTakeProfit ? "loading" : `take profit`}
           </Button>
         </Box>

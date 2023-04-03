@@ -166,8 +166,6 @@ export default async (_req: NextApiRequest, res: NextApiResponse) => {
               true
           )
         ) {
-          console.log(`Check this pair ${pair.id}, ${avgVolume}`);
-
           // const predictions: number[] = await getPredictions(
           //   pair.id,
           //   Number(pair.high),
@@ -175,9 +173,6 @@ export default async (_req: NextApiRequest, res: NextApiResponse) => {
           // );
 
           // const change = ((predictions[0] - pair.last) / pair.last) * 100;
-
-          // console.log(predictions, change.toFixed(2) + "%");
-          console.log(JSON.stringify(lastCandles) + "\n");
 
           return Promise.resolve(lastCandles);
         }

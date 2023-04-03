@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getPayloadHash, getSign, getSignatureString } from "./crypto";
+import BigNumber from "bignumber.js";
 
 const host = "https://api.gateio.ws/api/v4";
 
@@ -110,6 +111,61 @@ export function sellOrder(
   });
 }
 
+export function priceOrder(
+  market: string,
+  amount: string,
+  price: string,
+  rule: "<=" | ">=",
+  side: "buy" | "sell",
+  precision: number
+) {
+  const timestamp = Math.round(Date.now() / 1000);
+  const url = "/spot/price_orders";
+
+  const priceBN = new BigNumber(price);
+
+  const payload = {
+    trigger: {
+      price:
+        rule === ">="
+          ? priceBN.plus(10 ** -precision).toFixed(precision)
+          : priceBN.toFixed(precision),
+      rule,
+      expiration: 60 * 60 * 24,
+    },
+    put: {
+      type: "limit",
+      side,
+      price:
+        rule === "<="
+          ? priceBN.plus(10 ** -precision).toFixed(precision)
+          : priceBN.toFixed(precision),
+      amount,
+      account: "normal",
+      time_in_force: "gtc",
+    },
+    market,
+  };
+
+  const payloadHash = getPayloadHash(JSON.stringify(payload));
+
+  const signatureString = getSignatureString(
+    "POST",
+    url,
+    "",
+    payloadHash,
+    timestamp
+  );
+
+  return axios.post(`${host + url}`, payload, {
+    headers: {
+      KEY: "f3699a3ba1f904fddbb02123f4990ab1",
+      Timestamp: timestamp,
+      SIGN: getSign(signatureString),
+    },
+  });
+}
+
 export function getMyTrades(
   from: number = 0,
   limit: number = 0,
@@ -138,6 +194,42 @@ export function getMyTrades(
   if (currency_pair !== "") {
     query.push(`currency_pair=${currency_pair}`);
     params.currency_pair = currency_pair;
+  }
+
+  const signatureString = getSignatureString(
+    "GET",
+    url,
+    query.join("&"),
+    payloadHash,
+    timestamp
+  );
+
+  return axios.get(`${host + url}`, {
+    headers: {
+      KEY: "f3699a3ba1f904fddbb02123f4990ab1",
+      Timestamp: timestamp,
+      SIGN: getSign(signatureString),
+    },
+    params,
+  });
+}
+
+export function getAccounts(currency: string = "") {
+  const timestamp = Math.round(Date.now() / 1000);
+  const url = "/spot/accounts";
+
+  const payloadHash = getPayloadHash("");
+
+  const query = [];
+  interface Params {
+    currency?: string;
+  }
+
+  const params: Params = {};
+
+  if (currency !== "") {
+    query.push(`currency=${currency}`);
+    params.currency = currency;
   }
 
   const signatureString = getSignatureString(

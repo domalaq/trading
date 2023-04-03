@@ -33,12 +33,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       orderStatus = order.status;
     }
 
-    console.log("bought", pair);
-
-    return res.status(200).send("ok");
+    return res.status(200).send(`bought ${pair.id}`);
   } catch (error: any) {
-    console.log(error.response.data);
-
-    return res.status(500).send("error");
+    return res.status(500).send(error.response.data);
   }
 };
