@@ -111,12 +111,22 @@ const job = new CronJob({
               (l) => l.volumeChange > 100 && Math.abs(l.priceChange) > 0.5
             )
           ) {
+            const volumeChange = Math.max(
+              ...lastCandles.map((l) => l.volumeChange)
+            );
+            const priceChangeAbs = Math.max(
+              ...lastCandles.map((l) => Math.abs(l.priceChange))
+            );
+            const priceChange = lastCandles.reduce(
+              (p, c) =>
+                Math.abs(c.priceChange) === priceChangeAbs ? c.priceChange : p,
+              0
+            );
+
             return Promise.resolve({
               symbol: lastCandles[0].symbol,
-              volumeChange: Math.max(...lastCandles.map((l) => l.volumeChange)),
-              priceChange: Math.max(
-                ...lastCandles.map((l) => Math.abs(l.priceChange))
-              ),
+              volumeChange,
+              priceChange,
             });
           }
 
